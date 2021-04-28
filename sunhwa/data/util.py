@@ -18,7 +18,7 @@ cfg.mss_dir = 'data/mission/'
 cfg.pgcd = 'data/applog/page_code_info_210421.csv'
 
 #party_id label
-cfg.label = 'data/partyid_monthly_class_210421.csv'
+cfg.label = 'data/partyid_monthly_class_210428_re.csv'
 
 #member columns not used
 cfg.unused_mbrcol = ['cur_mbrsh_pd_sta_dt', 'cur_mbrsh_pd_end_dt', 'bf_mbrsh_pd_sta_dt', 'bf_mbrsh_pd_end_dt', 
@@ -27,7 +27,8 @@ cfg.unused_mbrcol = ['cur_mbrsh_pd_sta_dt', 'cur_mbrsh_pd_end_dt', 'bf_mbrsh_pd_
                                 'mkt_psnl_info_clct_agre_dt','mkt_psnl_info_ofr_agre_yn', 'mkt_psnl_info_ofr_agre_dt','trdprt_sens_info_ofr_agre_yn', 
                                 'trdprt_sens_info_ofr_agre_dt', 'skt_data_share_agre_yn', 'skt_data_share_agre_dt','info_share_agre_yn', 
                                 'info_share_agre_dt', 'info_get_agre_yn','info_get_agre_dt', 'other_info_agre_yn', 'other_info_agre_dt','receive_ad_yn', 
-                                'receive_ad_dt', 'hh_data_share_yn','hh_data_share_dt', 'mbrsh_st_ty_id', 'mbrsh_st_eff_dt', 'ip_insr_cd', 'gnrl_insr_cd']
+                                'receive_ad_dt', 'hh_data_share_yn','hh_data_share_dt', 'mbrsh_st_ty_id', 'mbrsh_st_eff_dt', 'ip_insr_cd', 'gnrl_insr_cd', 'wk_misn_sta_dt',
+                                'fee_yn','fcip_yn', 'lst_vst_dt']
 
 #goal mission columns used
 cfg.used_gmcol = ['p_event_apl_dte','points_value','points_effective_dte']
@@ -38,7 +39,7 @@ cfg.used_gmcol = ['p_event_apl_dte','points_value','points_effective_dte']
 def appfname(year, month):
     if month < 10:
         month = f'0{month}'
-    return os.path.join(cfg.applog_dir, f'applog_{year}{month}.csv')
+    return os.path.join(cfg.applog_dir, f'applog_{year}{month}_new_sesn_id.csv')
 
 def mbrfname(year, month):
     if month < 10:
@@ -59,7 +60,7 @@ def load_file(year, month):
     mbr = mbrfname(year, month)
     #goal_mission
     gm = gmfname(year, month)
-    
+    dd
     data = []
     for fname in [applog, mbr, gm]:
         print(f'{fname} 로딩중')
