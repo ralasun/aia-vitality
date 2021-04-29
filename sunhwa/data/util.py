@@ -13,12 +13,13 @@ cfg.data_dir = 'aiavitality'
 cfg.applog_dir = 'data/applog/'
 cfg.mbr_dir = 'data/member/'
 cfg.mss_dir = 'data/mission/'
+cfg.seq_dir = 'sunhwa/'
 
 #page_code
 cfg.pgcd = 'data/applog/page_code_info_210421.csv'
 
 #party_id label
-cfg.label = 'data/partyid_monthly_class_210428_re.csv'
+cfg.label = 'data/partyid_monthly_class_210428.csv'
 
 #member columns not used
 cfg.unused_mbrcol = ['cur_mbrsh_pd_sta_dt', 'cur_mbrsh_pd_end_dt', 'bf_mbrsh_pd_sta_dt', 'bf_mbrsh_pd_end_dt', 
@@ -51,6 +52,11 @@ def gmfname(year, month):
         month = f'0{month}'
     return os.path.join(cfg.mss_dir, f'goal_misn_{year}{month}.csv')
 
+def seqfname(year, month):
+    if month < 10:
+        month = f'0{month}'
+    return os.path.join(cfg.seq_dir, f'seq_{year}{month}.csv')
+
 def load_file(year, month):
     s3 = boto3.client('s3')
     
@@ -60,7 +66,6 @@ def load_file(year, month):
     mbr = mbrfname(year, month)
     #goal_mission
     gm = gmfname(year, month)
-    dd
     data = []
     for fname in [applog, mbr, gm]:
         print(f'{fname} 로딩중')
