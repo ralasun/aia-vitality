@@ -34,6 +34,8 @@ cfg.unused_mbrcol = ['cur_mbrsh_pd_sta_dt', 'cur_mbrsh_pd_end_dt', 'bf_mbrsh_pd_
 #goal mission columns used
 cfg.used_gmcol = ['p_event_apl_dte','points_value','points_effective_dte']
 
+#applog 부분 length길이
+cfg.applog_featlen = 182
 
 
 #fname 

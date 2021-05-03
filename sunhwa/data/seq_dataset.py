@@ -15,6 +15,9 @@ class SeqPreProcess():
     
     def __init__(self, start, end=None):
         
+        self.pcd = None
+        self.lbl = None
+        
         startmth = pd.to_datetime(start, format='%Y%m')
         self.date_ranges = None
         if end is not None:
@@ -87,7 +90,9 @@ class SeqPreProcess():
         merged_df['push_alarm_yn'] = merged_df['push_alarm_yn'].astype("category").cat.codes
         
         return merged_df
-        
+    
+    def dates(self):
+        return self.date_ranges    
         
 class SeqDataSet():
     
@@ -138,6 +143,7 @@ def basic_prep_applog_per_mth(df, pcd, lblmth):
     df = df.sort_values(['party_id', 'vst_dtm', 'sesn_id'])
     
     df = merge_app_and_pcd(df, pcd)
+    pdb.set_trace()
     df = merge_app_and_lbl(df, lblmth)
     
     return df
@@ -146,6 +152,7 @@ def basic_prep_applog_per_mth(df, pcd, lblmth):
 def prep_applog_per_mth(appdf, pcd, lblmth):
     
     appdf = basic_prep_applog_per_mth(appdf, pcd, lblmth)
+    print(appdf.columns)
     
     print('Before appdf len', len(appdf))
     #1.menu _nm_1 == Nan or menu_nm_2 == Nan인 경우로만 이뤄진 session_id 제거하기
@@ -233,8 +240,7 @@ def prep_applog_per_mth(appdf, pcd, lblmth):
         seqdf = pd.merge(seqdf, cand, on=['party_id','sesn_id'])
         assert beflen == len(seqdf), 'they should have same length'
 
-    return seqdf
-    
+    return seqdf 
 
 def prep_lbl_per_mth(lbl, date):
     lbl['party_id'] = lbl['PartyId']
@@ -348,8 +354,11 @@ def prep_gmlog_per_mth(gmdf):
     return gmdf
 
 def prep_pagecd(pcd):
+    
     pcd = pcd.reset_index(drop=True)
     pcd = pcd.drop(columns=['No'])
+    pcd = pcd.loc[pcd['menu_nm_1'] != '위젯']
+    pcd = pcd.loc[pcd['menu_nm_2'] != '위젯']
     
     code2name = {}
     for k, v in zip(pcd['page_cd'].values,  pcd['page_nm'].values):
@@ -382,9 +391,77 @@ def merge_app_and_gm(seqdf, gmdf):
     mergeddf[['achv_rat','points_value']] = mergeddf[['achv_rat','points_value']].fillna(value=0)
     return mergeddf
 
+def find_sty_ind(columns):
+    for ind, col in enumerate(columns):
+        if 'sty_tms' in col:
+            return ind
 
+def find_end_ind(columns):
+    for ind, col in enumerate(columns):
+        if 'value' in col:
+            return ind
+        
+def appcol_names_pg(appcolnms):
+    for cat in cat1:
+        if cat in samecat:
+            cat = cat + '_x'
+        appcolnms.append(cat)
+    for cat in cat2:
+        if cat in samecat:
+            cat = cat + '_y'
+        appcolnms.append(cat)
+    return appcolnms
+
+def appcol_names_sty(appcolnms):
+    for cat in cat1:
+        if cat in samecat:
+            cat = f"('sty_tms', '{cat}')_x"
+        else:
+            cat = f"('sty_tms', '{cat}')"
+        appcolnms.append(cat)
+    for cat in cat2:
+        cat = f"('sty_tms_y', '{cat}')"
+        appcolnms.append(cat)
+    return appcolnms
+
+def appcol_names_end(appcolnms):
+    for cat in cat1:
+        cat=f"('value', '{cat}')"
+        appcolnms.append(cat)
+    return appcolnms
+
+def add_extra_appcols(seqdf, appcolnms):
+    
+    masks = np.ones(len(appcolnms), dtype=np.bool)
+    pcd_ind = np.where(seqdf.columns == 'page_cd')[0][0]
+    sty_ind = find_sty_ind(seqdf.columns)
+    end_ind = find_end_ind(seqdf.columns)
+    gen_ind = np.where(seqdf.columns == 'gender_cd')[0][0]
+    
+    pgcols = seqdf.columns[pcd_ind+1:sty_ind]
+    stycols = seqdf.columns[sty_ind:end_ind]
+    endcols = seqdf.columns[end_ind:gen_ind]
+    
+    for colset in [pgcols, stycols, endcols]:
+        inds = np.where(np.isin(appcolnms, colset))
+        masks[inds] = False
+    
+    cols_notexist = appcolnms[masks]
+    seqdf[cols_notexist] = np.zeros(shape=(len(seqdf), len(cols_notexist)), dtype=np.float32)
+    seqdfcol_woapp = seqdf.columns[~np.isin(seqdf.columns, appcolnms)]
+    seqdf = seqdf[np.concatenate([seqdfcol_woapp, appcolnms])]
+    return seqdf
 
 if __name__ == '__main__':
     
-    seqds = SeqPreProcess(start='202007', end=None)
-    seqds.preprocess()
+    from util import *
+    seqds = SeqPreProcess(start='202002', end='202103')
+    lbl = read_csv(cfg.label)
+    for date in seqds.dates():
+        print(date)
+        csvpath = os.path.join('s3://', cfg.data_dir, seqfname(date.year, date.month))
+        seqdf = read_csv(seqfname(date.year, date.month))
+        lblmth = prep_lbl_per_mth(lbl, date)
+        seqdf = merge_app_and_lbl(seqdf, lblmth)
+        seqdf.to_csv(csvpath)
+        
