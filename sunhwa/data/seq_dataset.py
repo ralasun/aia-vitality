@@ -366,6 +366,7 @@ def prep_pagecd(pcd):
             code2name[k]=k
         else:
             code2name[k]=v
+            
     return pcd, code2name
 
 def merge_app_and_pcd(df, pcd):
@@ -390,11 +391,44 @@ def merge_app_and_gm(seqdf, gmdf):
     mergeddf = pd.merge(seqdf, pointsdf, on=['party_id','dt'], how='left')
     mergeddf[['achv_rat','points_value']] = mergeddf[['achv_rat','points_value']].fillna(value=0)
     return mergeddf
+        
+def create_appcolnms(pcd):
+    
+    def appcol_names_pg(appcolnms):
+        for cat in cat1:
+            if cat in samecat:
+                cat = cat + '_x'
+            appcolnms.append(cat)
+        for cat in cat2:
+            if cat in samecat:
+                cat = cat + '_y'
+            appcolnms.append(cat)
+        return appcolnms
 
+<<<<<<< HEAD
 def find_sty_ind(columns):
     for ind, col in enumerate(columns):
         if 'sty_tms' in col:
             return ind
+=======
+    def appcol_names_sty(appcolnms):
+        for cat in cat1:
+            if cat in samecat:
+                cat = f"('sty_tms', '{cat}')_x"
+            else:
+                cat = f"('sty_tms', '{cat}')"
+            appcolnms.append(cat)
+        for cat in cat2:
+            cat = f"('sty_tms_y', '{cat}')"
+            appcolnms.append(cat)
+        return appcolnms
+
+    def appcol_names_end(appcolnms):
+        for cat in cat1:
+            cat=f"('value', '{cat}')"
+            appcolnms.append(cat)
+        return appcolnms
+>>>>>>> 0dccc50425c38d9b9ad4bfd5f5f1732e674e97f0
 
 def find_end_ind(columns):
     for ind, col in enumerate(columns):
@@ -452,9 +486,61 @@ def add_extra_appcols(seqdf, appcolnms):
     seqdf = seqdf[np.concatenate([seqdfcol_woapp, appcolnms])]
     return seqdf
 
+    cat1 = pcd['menu_nm_1'].unique()[1:]
+    cat2 = pcd['menu_nm_2'].unique()[1:]
+    samecat = []
+    for cat in cat2:
+        if cat in cat1:
+            samecat.append(cat)
+    
+    appcolnms = []
+    appcolnms = appcol_names_pg(appcolnms)
+    appcolnms = appcol_names_sty(appcolnms)
+    appcolnms = appcol_names_end(appcolnms)
+    
+    return np.asarray(appcolnms)
+    
+def add_extra_appcols(seqdf, appcolnms):
+    
+    def find_sty_ind(columns):
+        for ind, col in enumerate(columns):
+            if 'sty_tms' in col:
+                return ind
+
+    def find_end_ind(columns):
+        for ind, col in enumerate(columns):
+            if 'value' in col:
+                return ind
+    
+    masks = np.ones(len(appcolnms), dtype=np.bool)
+    pcd_ind = np.where(seqdf.columns == 'page_cd')[0][0]
+    sty_ind = find_sty_ind(seqdf.columns)
+    end_ind = find_end_ind(seqdf.columns)
+    gen_ind = np.where(seqdf.columns == 'gender_cd')[0][0]
+    
+    pgcols = seqdf.columns[pcd_ind+1:sty_ind]
+    stycols = seqdf.columns[sty_ind:end_ind]
+    endcols = seqdf.columns[end_ind:gen_ind]
+    
+    for colset in [pgcols, stycols, endcols]:
+        inds = np.where(np.isin(appcolnms, colset))
+        masks[inds] = False
+    
+    cols_notexist = appcolnms[masks]
+    seqdf[cols_notexist] = np.zeros(shape=(len(seqdf), len(cols_notexist)), dtype=np.float32)
+    seqdfcol_woapp = seqdf.columns[~np.isin(seqdf.columns, appcolnms)]
+    seqdf = seqdf[np.concatenate([seqdfcol_woapp, appcolnms])]
+    
+    for col in seqdf.columns:
+        if 'Unnamed' in col:
+            seqdf = seqdf.drop(columns=[col])
+            
+    return seqdf
+
 if __name__ == '__main__':
     
     from util import *
+<<<<<<< HEAD
     seqds = SeqPreProcess(start='202002', end='202103')
     lbl = read_csv(cfg.label)
     for date in seqds.dates():
@@ -463,5 +549,16 @@ if __name__ == '__main__':
         seqdf = read_csv(seqfname(date.year, date.month))
         lblmth = prep_lbl_per_mth(lbl, date)
         seqdf = merge_app_and_lbl(seqdf, lblmth)
+=======
+    seqds = SeqPreProcess(start='202001', end='202103')
+    pcd, _ = prep_pagecd(read_csv(cfg.pgcd))
+    appcolnms = create_appcolnms(pcd)
+    for date in seqds.dates():
+        print(date)
+        seqdf = read_csv(seqfname(date.year, date.month))
+        seqdf = add_extra_appcols(seqdf, appcolnms)
+        
+        csvpath = os.path.join('s3://', cfg.data_dir, seqfname(date.year, date.month))
+>>>>>>> 0dccc50425c38d9b9ad4bfd5f5f1732e674e97f0
         seqdf.to_csv(csvpath)
         
